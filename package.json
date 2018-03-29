@@ -1,0 +1,29 @@
+{
+  "name": "attach-version-webpack-plugin",
+  "version": "0.0.0",
+  "description": "attach-version-webpack-plugin",
+  "keywords": [
+    "webpack",
+    "assets",
+    "version"
+  ],
+  "homepage": "https://github.com/mohwa/attach-version-webpack-plugin",
+  "author": {
+    "name": "mohwa",
+    "email": "yanione2@gmail.com"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "lodash": "^4.14.1",
+    "cheerio": "^1.0.0-rc.2",
+    "crypto": "^1.0.1",
+    "request": "^2.83.0",
+    "query-string": "^5.1.0",
+    "is-online": "^7.0.0",
+    "fs-extra": "^5.0.0"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=8.x"
+  }
+}
