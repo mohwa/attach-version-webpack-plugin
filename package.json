@@ -1,6 +1,6 @@
 {
   "name": "attach-version-webpack-plugin",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "attach-version-webpack-plugin",
   "keywords": [
     "webpack",

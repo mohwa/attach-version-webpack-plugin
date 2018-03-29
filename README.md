@@ -10,7 +10,7 @@
 npm i --D attach-version-webpack-plugin
 ```
 
-## Usage
+## Basic usage
 
 webpack.config.js
 
@@ -20,13 +20,14 @@ const AttachVersionWebpackPlugin = require('attach-version-webpack-plugin');
 module.exports = {
   entry: 'index.js',
   output: {
-    path: 'path/to/build',
-    filename: 'index.js'
+    path: 'path/to/dist',
+    filename: 'index.bundle.js'
   },
   plugins: [
     new AttachVersionWebpackPlugin({
+        context: 'path/to' // The base directory, an absolute path, for resolving entry points.
         templates: [
-            'path/to/index.html'
+            'index.html' // The template directory, an relative path via context path.
             ...
         ]
     }),
@@ -34,7 +35,11 @@ module.exports = {
 }
 ```
 
-## index.html
+## The contents of generated index.html file.
+
+> Template files move through declared webpack output path.
+
+> if online, injected remote asset version.
 
 ```
 <!DOCTYPE html>
@@ -42,71 +47,34 @@ module.exports = {
 <head>
     <meta charset="utf-8">
     ...
-
-    <link rel="stylesheet" href="assets/bxuip-angular.js-ui/dist/assets/css/bx-ui.min.css?v=15c70318">
-    <link rel="stylesheet" href="assets/bxuip-angular.js-ui/dist/assets/theme/bx-theme-blackdiamond.css?v=32c62e2b">
-
-    <script type="text/javascript" src="assets/jquery/dist/jquery.min.js?v=69bb69e2"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/react-router/4.2.0/react-router.min.js?test=dkajdkjadlkjakl&amp;v=59eb182b&amp;v=59eb182b&amp;v=59eb182b&amp;v=59eb182b"></script>
-    <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/reactstrap/5.0.0/reactstrap.full.min.js?v=f24f9127&amp;v=f24f9127&amp;v=f24f9127&amp;v=f24f9127"></script>
-    <script type="text/javascript" src="file://cdnjs.cloudflare.com/ajax/libs/reactstrap/5.0.0/reactstrap.full.min.js"></script>
-
-    <script src="/xjs/_/js/k=xjs.s.ko.rXdMp5Gu4b8.O/m=RMhBfe/am=wCJ0xz8A-f_BgCLRCkZYgGjBMDQ/exm=sx,sb,cdos,cr,elog,hsm,jsa,r,d,csi,aa,abd,async,dvl,foot,fpe,ipv6,lu,m,mpck,mu,sf,sonic,spch,tl,vs,d3l,tnv,mrn,exdp,udlg,me,atn,WgDvvc/rt=j/d=1/ed=1/t=zcms/rs=ACT90oFgvw8nFkcuTWJsiBY1uz8e0LS2Zw" async gapi_processed="true"></script>
-
-    <script src="/xjs/_/js/k=xjs.s.ko.rXdMp5Gu4b8.O/m=aa,abd,async,dvl,foot,fpe,ipv6,lu,m,mpck,mu,sf,sonic,spch,tl,vs,d3l,tnv,mrn,exdp,udlg,me,atn,WgDvvc/am=wCJ0xz8A-f_BgCLRCkZYgGjBMDQ/exm=sx,sb,cdos,cr,elog,hsm,jsa,r,d,csi/rt=j/d=1/ed=1/t=zcms/rs=ACT90oFgvw8nFkcuTWJsiBY1uz8e0LS2Zw?xjs=s1" async></script>
-
-    <script nonce="VzMSAYyd7jNi/cVrj/xGcA==">window.gbar&&gbar.up&&gbar.up.tp&&gbar.up.tp();</script>
-
+    <!-- css asset -->
+    <link rel="stylesheet" href="path/to/test.css?v=07798350">
+    ...
+    <!-- remote javascript asset -->
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/react-router/4.2.0/react-router.min.js?v=59eb182b"></script>
 </head>
-<body ng-app="app">
-    <ui-view></ui-view>
-
+<body>
+    <!-- internal javascript asset -->
 	<script type="text/javascript" src="common_bundle.js?v=747ec249"></script>
-	<script type="text/javascript" src="app/app.config.js?v=bf480dcb"></script>
-	<script type="text/javascript" src="app/app.js?v=d1727213"></script>
-
-</body></html>
+	...
+</body>
+</html>
 ```
 
-Default command:
+## Options
+
+|Name|Type|Default|Description|
+|:--:|:--:|:-----:|:----------|
+|`context`|`{String}`|`''`|The base directory, an absolute path, for resolving entry points.<br/><br/>```context: '/src'```<br>```templates: ['index.html'] // src/index.html```|
+|`templates`|`{Array}`|`'[]'`|The template directory, an relative path via context path.|
+
+
+## Context example
 
 ```
-mynpm-pub --config /path/to/config.yaml
+context: '/src'
+templates: 'index.html' // src/index.html
 ```
-
-### CLI Arguments
-
-```
-usage: mynpm-pub [-h] [-v] [-c CONFIG] [--packages PACKAGES [PACKAGES ...]]
-                 [-f FORCE]
-
-
-my-npm-pub cli example
-
-Optional arguments:
-  -h, --help            Show this help message and exit.
-  -v, --version         Show program's version number and exit.
-  -c CONFIG, --config CONFIG
-                        verdaccio configuration file path
-  --packages PACKAGES [PACKAGES ...]
-                        installation each packages.
-  -f FORCE, --force FORCE
-                        Force the installation of the package.
-```
-
-## ClI Example
-
-```
-# default
-mynpm-pub --config /path/to/config.yaml
-
-# publish to each packages
-mynpm-pub --config /path/to/config.yaml --packages test test1
-
-# publish to force
-mynpm-pub --config /path/to/config.yaml --force true
-```
-
 
 
 
