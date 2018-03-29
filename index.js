@@ -8,6 +8,7 @@ const request = require('request');
 const onlineChecker = require('is-online');
 const queryString = require('query-string');
 const fse = require('fs-extra');
+const log = require('./lib/log');
 
 const tmpAssetPath = path.join(__dirname, '__assets');
 
@@ -20,13 +21,19 @@ let isOnline = false;
 class AttachVersionWebpackPlugin{
 
     constructor({
+        context = '',
         templates = []
     } = {}){
+        // context path
+        this.context = context;
+        // template path
         this.templates = templates;
     }
     apply(compiler){
 
         let self = this;
+
+        if (_.isEmpty(this.context)) log.fatal('Not found context property.');
 
         compiler.plugin('compile', function(){
             onlineChecker().then(online => { isOnline = true; });
@@ -42,7 +49,7 @@ class AttachVersionWebpackPlugin{
             const templates = _.isEmpty(self.templates) ? [indexHTMLPath] : self.templates;
 
             _.forEach(templates, v => {
-                _attachVersion.call(this, v, callback);
+                _attachVersion.call(this, self.context, path.join(self.context, v), callback);
             });
         });
     };
@@ -55,7 +62,7 @@ class AttachVersionWebpackPlugin{
  * @param callback
  * @private
  */
-function _attachVersion(templatePath = '', callback = function(){}){
+function _attachVersion(context = '', templatePath = '', callback = function(){}){
 
     // 빌드 폴더에 index.html 파일이 없을 경우
     if (!fs.existsSync(templatePath)){
@@ -79,12 +86,13 @@ function _attachVersion(templatePath = '', callback = function(){}){
 
     const assets = [scripts, links];
 
-    let filePath = '';
-
     // element total length
     const assetLength = _.size(scripts) + _.size(links);
 
     let assetIndex = 0;
+
+    // 출력될 파일 경로
+    const outputFilePath = templatePath.replace(context, outputPath);
 
     _.forEach(assets, asset => {
 
@@ -103,31 +111,29 @@ function _attachVersion(templatePath = '', callback = function(){}){
                 const baseSrc = parseUrl.url;
                 const baseFileName = path.parse(baseSrc).base;
 
-                filePath = path.join(tmpAssetPath, baseFileName);
+                const tmpAssetFilePath = path.join(tmpAssetPath, baseFileName);
 
                 if (!fs.existsSync(tmpAssetPath)) fse.ensureDirSync(tmpAssetPath);
 
-                (($elem, filePath) => {
+                (($elem, tmpAssetFilePath) => {
 
                     // 리모트 파일들을 로컬에 다운받은 후, 그 파일 내용을 통해, hash 문자열을 생성해낸다.
-                    request.get(entry).pipe(fs.createWriteStream(filePath).on('finish', () => {
+                    request.get(entry).pipe(fs.createWriteStream(tmpAssetFilePath).on('finish', () => {
 
-                        const hash = _getFileHash(filePath);
+                        const hash = _getFileHash(tmpAssetFilePath);
 
                         _setSrc($elem, entry, hash);
 
                         ++assetIndex;
                     }));
 
-                })($elem, filePath);
+                })($elem, tmpAssetFilePath);
             }
             else{
 
                 if (!_.isEmpty(entry)){
 
-                    filePath = path.join(outputPath, entry);
-
-                    const hash = _getFileHash(filePath);
+                    const hash = _getFileHash(outputFilePath);
 
                     _setSrc($elem, entry, hash);
                 }
@@ -141,7 +147,7 @@ function _attachVersion(templatePath = '', callback = function(){}){
 
         if (assetLength === assetIndex){
 
-            fs.writeFileSync(templatePath, $.html());
+            fs.writeFileSync(outputFilePath, $.html());
 
             // 리모트 파일 폴더를 삭제한다.
             fse.removeSync(tmpAssetPath);

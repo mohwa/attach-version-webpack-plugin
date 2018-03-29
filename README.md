@@ -4,77 +4,68 @@
 `attach-version-webpack-plugin` is webpack plugin for inject asset version in template files.
 
 
-## Install `verdaccio`
+## Install
 
 ```
-npm i -g verdaccio
+npm i --D attach-version-webpack-plugin
 ```
 
-## `verdaccio` configuration
+## Usage
 
-[What is Verdaccio?](http://www.verdaccio.org/docs/en/what-is-verdaccio.html) / [verdaccio configuration](http://www.verdaccio.org/docs/en/configuration.html)
-
-## Required `verdaccio` configuration
+webpack.config.js
 
 ```
-# package storage(absolute path)
-storage: /path/to/storage
-...
+const AttachVersionWebpackPlugin = require('attach-version-webpack-plugin');
 
-# publish the registry url
-uplinks:
-  npmjs:
-    # public server url
-    url: https://registry.npmjs.org
-  # **************************************************
-  # **************************************************
-  # You must have mynpmpub.url attributes.
-  # **************************************************
-  # **************************************************
-  mynpmpub:
-    # private npm server url
-    url: http://127.0.0.1:4873
+module.exports = {
+  entry: 'index.js',
+  output: {
+    path: 'path/to/build',
+    filename: 'index.js'
+  },
+  plugins: [
+    new AttachVersionWebpackPlugin({
+        templates: [
+            'path/to/index.html'
+            ...
+        ]
+    }),
+  ]
+}
+```
 
-# set proxy
-packages:
-  '@*/*':
-	...
-    proxy: mynpmpub
-  '**':
+## index.html
+
+```
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
     ...
-    proxy: mynpmpub
-...
-```
 
-## You Must make up dependency tree with `npm i` command.
+    <link rel="stylesheet" href="assets/bxuip-angular.js-ui/dist/assets/css/bx-ui.min.css?v=15c70318">
+    <link rel="stylesheet" href="assets/bxuip-angular.js-ui/dist/assets/theme/bx-theme-blackdiamond.css?v=32c62e2b">
 
-```
-cd path/to/projectPath
+    <script type="text/javascript" src="assets/jquery/dist/jquery.min.js?v=69bb69e2"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/react-router/4.2.0/react-router.min.js?test=dkajdkjadlkjakl&amp;v=59eb182b&amp;v=59eb182b&amp;v=59eb182b&amp;v=59eb182b"></script>
+    <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/reactstrap/5.0.0/reactstrap.full.min.js?v=f24f9127&amp;v=f24f9127&amp;v=f24f9127&amp;v=f24f9127"></script>
+    <script type="text/javascript" src="file://cdnjs.cloudflare.com/ajax/libs/reactstrap/5.0.0/reactstrap.full.min.js"></script>
 
-npm i
-```
+    <script src="/xjs/_/js/k=xjs.s.ko.rXdMp5Gu4b8.O/m=RMhBfe/am=wCJ0xz8A-f_BgCLRCkZYgGjBMDQ/exm=sx,sb,cdos,cr,elog,hsm,jsa,r,d,csi,aa,abd,async,dvl,foot,fpe,ipv6,lu,m,mpck,mu,sf,sonic,spch,tl,vs,d3l,tnv,mrn,exdp,udlg,me,atn,WgDvvc/rt=j/d=1/ed=1/t=zcms/rs=ACT90oFgvw8nFkcuTWJsiBY1uz8e0LS2Zw" async gapi_processed="true"></script>
 
-## Use with node.js
+    <script src="/xjs/_/js/k=xjs.s.ko.rXdMp5Gu4b8.O/m=aa,abd,async,dvl,foot,fpe,ipv6,lu,m,mpck,mu,sf,sonic,spch,tl,vs,d3l,tnv,mrn,exdp,udlg,me,atn,WgDvvc/am=wCJ0xz8A-f_BgCLRCkZYgGjBMDQ/exm=sx,sb,cdos,cr,elog,hsm,jsa,r,d,csi/rt=j/d=1/ed=1/t=zcms/rs=ACT90oFgvw8nFkcuTWJsiBY1uz8e0LS2Zw?xjs=s1" async></script>
 
-Install package:
+    <script nonce="VzMSAYyd7jNi/cVrj/xGcA==">window.gbar&&gbar.up&&gbar.up.tp&&gbar.up.tp();</script>
 
-```
-npm i mynpm-pub
-```
+</head>
+<body ng-app="app">
+    <ui-view></ui-view>
 
-Example:
-```
-const MyNPMPub = require('mynpm-pub');
+	<script type="text/javascript" src="common_bundle.js?v=747ec249"></script>
+	<script type="text/javascript" src="app/app.config.js?v=bf480dcb"></script>
+	<script type="text/javascript" src="app/app.js?v=d1727213"></script>
 
-new MyNPMPub({config: 'path/to/config.yaml', force: false, packages: ['test', 'test1']}).publish();
-```
-
-## Use with CLI
-
-Install package on global location:
-
-```
-npm i -g mynpm-pub
+</body></html>
 ```
 
 Default command:
