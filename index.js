@@ -9,26 +9,24 @@ const onlineChecker = require('is-online');
 const queryString = require('query-string');
 const fse = require('fs-extra');
 
-const tmpAssetPath = path.join(__dirname, '_assets');
+const tmpAssetPath = path.join(__dirname, '__assets');
 
 // 온라인 여부
 let isOnline = false;
 
-let self = null;
 /**
- * build/index.html 내부 script 또는 css 엘리먼트의 "src/href" 값에 "hash version" 을 주입시킨다.
+ * 전달받은 template file 내부 <script> 또는 <link> 엘리먼트의 src/href 속성값에 "hash version" 을 추가시킨다.
  */
-class InjectAssetsVersionPlugin{
+class AttachVersionWebpackPlugin{
 
     constructor({
-        template = ''
+        templates = []
     } = {}){
-
-        self = this;
-
-        this.template = template;
+        this.templates = templates;
     }
     apply(compiler){
+
+        let self = this;
 
         compiler.plugin('compile', function(){
             onlineChecker().then(online => { isOnline = true; });
@@ -37,115 +35,137 @@ class InjectAssetsVersionPlugin{
         // asset 이 output path 에 배포된 이후..
         compiler.plugin('after-emit', function(compilation, callback){
 
-            // webpack outputPath
+            // webpack output path
             const outputPath = this.outputPath;
-            const defaultTemplatePath = path.join(outputPath, 'index.html');
+            const indexHTMLPath = path.join(outputPath, 'index.html');
 
-            const templatePath = _.isEmpty(self.template) ? defaultTemplatePath : self.template;
+            const templates = _.isEmpty(self.templates) ? [indexHTMLPath] : self.templates;
 
-            // 빌드 폴더에 index.html 파일이 없을 경우
-            if (!fs.existsSync(templatePath)){
-                console.log('Not found template file');
-                callback();
-
-                return;
-            }
-
-            // 반드시 빌드 폴더에 index.html 파일이 존재해야한다.
-            const template = fs.readFileSync(templatePath, 'utf-8');
-
-            const $ = cheerio.load(template);
-
-            const scripts = $('script');
-            const links = $('link');
-
-            const assets = [scripts, links];
-
-            let filePath = '';
-            let assetLength = _.size(scripts) + _.size(links);
-            let assetIndex = 0;
-
-            _.forEach(assets, (v) => {
-
-                _.map(v, vv => {
-
-                    const $elem = $(vv);
-                    const isScript = _isScript($elem);
-
-                    let src = isScript ? $elem.attr('src') : $elem.attr('href');
-
-                    const parseUrl = queryString.parseUrl(src);
-
-                    const baseSrc = parseUrl.url;
-                    const query = parseUrl.query;
-
-                    if (isOnline && _isRemoteFile(src)){
-
-                        const base = path.parse(baseSrc).base;
-                        filePath = path.join(tmpAssetPath, base);
-
-                        if (!fs.existsSync(tmpAssetPath)) mkdir('-p', tmpAssetPath);
-
-                        (($elem, filePath) => {
-
-                            request.get(src).pipe(fs.createWriteStream(filePath).on('finish', () => {
-
-                                const hash = _getFileHash(filePath);
-
-                                _setSrc($elem, src, query, hash);
-
-                                ++assetIndex;
-                            }));
-
-                        })($elem, filePath);
-                    }
-                    else{
-
-                        filePath = path.join(outputPath, baseSrc);
-
-                        const hash = _getFileHash(filePath);
-
-                        _setSrc($elem, src, query, hash);
-
-                        ++assetIndex;
-                    }
-                });
+            _.forEach(templates, v => {
+                _attachVersion.call(this, v, callback);
             });
-
-            const timerId = setInterval(() => {
-
-                if (assetLength === assetIndex){
-
-                    fs.writeFileSync(templatePath, $.html());
-
-                    // 리모트 파일 폴더를 삭제한다.
-                    fse.removeSync(tmpAssetPath);
-
-                    clearInterval(timerId);
-
-                    callback();
-                }
-            }, 100);
         });
     };
 }
 
 /**
+ * asset 버전을 추가한다.
+ *
+ * @param templatePath
+ * @param callback
+ * @private
+ */
+function _attachVersion(templatePath = '', callback = function(){}){
+
+    // 빌드 폴더에 index.html 파일이 없을 경우
+    if (!fs.existsSync(templatePath)){
+
+        console.log('Not found template file');
+        callback();
+
+        return;
+    }
+
+    const outputPath = this.outputPath;
+
+    // 반드시 빌드 폴더에 index.html 파일이 존재해야한다.
+    const template = fs.readFileSync(templatePath, 'utf-8');
+
+    // dom element
+    const $ = cheerio.load(template);
+
+    const scripts = $('script');
+    const links = $('link');
+
+    const assets = [scripts, links];
+
+    let filePath = '';
+
+    // element total length
+    const assetLength = _.size(scripts) + _.size(links);
+
+    let assetIndex = 0;
+
+    _.forEach(assets, asset => {
+
+        _.map(asset, elem => {
+
+            const $elem = $(elem);
+            const isScriptElem = _isScriptElem($elem);
+
+            const entry = isScriptElem ? $elem.attr('src') : $elem.attr('href');
+
+            // 온라인이면서, entry 값이 리모트인 경우...
+            if (isOnline && _isRemoteEntry(entry)){
+
+                const parseUrl = queryString.parseUrl(entry);
+
+                const baseSrc = parseUrl.url;
+                const baseFileName = path.parse(baseSrc).base;
+
+                filePath = path.join(tmpAssetPath, baseFileName);
+
+                if (!fs.existsSync(tmpAssetPath)) fse.ensureDirSync(tmpAssetPath);
+
+                (($elem, filePath) => {
+
+                    // 리모트 파일들을 로컬에 다운받은 후, 그 파일 내용을 통해, hash 문자열을 생성해낸다.
+                    request.get(entry).pipe(fs.createWriteStream(filePath).on('finish', () => {
+
+                        const hash = _getFileHash(filePath);
+
+                        _setSrc($elem, entry, hash);
+
+                        ++assetIndex;
+                    }));
+
+                })($elem, filePath);
+            }
+            else{
+
+                if (!_.isEmpty(entry)){
+
+                    filePath = path.join(outputPath, entry);
+
+                    const hash = _getFileHash(filePath);
+
+                    _setSrc($elem, entry, hash);
+                }
+
+                ++assetIndex;
+            }
+        });
+    });
+
+    const intervalId = setInterval(() => {
+
+        if (assetLength === assetIndex){
+
+            fs.writeFileSync(templatePath, $.html());
+
+            // 리모트 파일 폴더를 삭제한다.
+            fse.removeSync(tmpAssetPath);
+
+            clearInterval(intervalId);
+
+            callback();
+        }
+    }, 100);
+}
+/**
  * 엘리먼트 src 값을 할당한다.
+ *
  * @param $elem
  * @param src
  * @param query
  * @param hash
  * @private
  */
-function _setSrc($elem = null, src = '', query = {}, hash = ''){
+function _setSrc($elem = null, src = '', hash = ''){
 
-    if (!_.isEmpty(hash)){
+    if (!_.isEmpty(hash)) src = /\?+/.test(src) ? `${src}&v=${hash}` : `${src}?v=${hash}`;
 
-        src = _.size(query) ? `${src}&v=${hash}` : `${src}?v=${hash}`;
-    }
-
-    if (_isScript($elem)) $elem.attr('src', src);
+    if (_isScriptElem($elem)) $elem.attr('src', src);
     else $elem.attr('href', src);
 }
 
@@ -155,21 +175,23 @@ function _setSrc($elem = null, src = '', query = {}, hash = ''){
  * @returns {boolean}
  * @private
  */
-function _isScript($elem = null){
+function _isScriptElem($elem = null){
     return $elem.get(0).tagName === 'script' ? true : false;
 }
 
+
 /**
  * 리모트 파일 여부를 반환한다.
- * @param src
- * @returns {Array|{index: number, input: string}|RegExpMatchArray}
+ *
+ * @param v
+ * @returns {boolean}
  * @private
  */
-function _isRemoteFile(src = ''){
+function _isRemoteEntry(v = ''){
 
     const ptn = /^(http|https):\/\//;
 
-    return src.match(ptn);
+    return ptn.test(v);
 }
 
 /**
@@ -194,4 +216,4 @@ function _getFileHash(filePath = ''){
 }
 
 
-module.exports = InjectAssetsVersionPlugin;
+module.exports = AttachVersionWebpackPlugin;
