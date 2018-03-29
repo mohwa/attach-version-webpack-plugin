@@ -1,7 +1,7 @@
 
 # attach-version-webpack-plugin
 
-`attach-version-webpack-plugin` is a library that installs all dependent packages required by the project on the [verdaccio](http://www.verdaccio.org/docs/en/configuration.html) private NPM server.
+`attach-version-webpack-plugin` is webpack plugin for inject asset version in template files.
 
 
 ## Install `verdaccio`
