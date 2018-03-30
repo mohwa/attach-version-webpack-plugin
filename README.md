@@ -65,7 +65,7 @@ module.exports = {
 
 |Name|Type|Default|Description|
 |:--:|:--:|:-----:|:----------|
-|`context`|`{String}`|`''`|The base directory, an absolute path, for resolving entry points.<br/><br/>```context: '/src'```<br>```templates: ['index.html'] // src/index.html```|
+|`context`|`{String}`|`''`|The base directory, an absolute path, for resolving entry points.<br/><br/>```context: '/src'```<br>```templates: ['index.html'] // /src/index.html```|
 |`templates`|`{Array}`|`'[]'`|The template directory, an relative path via context path.|
 
 
@@ -73,7 +73,7 @@ module.exports = {
 
 ```
 context: '/src'
-templates: 'index.html' // src/index.html
+templates: ['index.html'] // /src/index.html
 ```
 
 
